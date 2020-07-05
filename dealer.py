@@ -268,5 +268,6 @@ def distribute(ranked_players):
     
     bets = sorted(bet_player.keys())
     
+    # TO DO
     
     
