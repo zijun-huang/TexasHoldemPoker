@@ -8,15 +8,17 @@ Created on Thu Jul  2 13:09:57 2020
 import random
 from pokerClasses import Card, Deck, Player
 import AIStrategy as AI
+import dealer
 
 BETTING_OPTIONS = ['fold', 'check', 'call', 'bet', 'raise']
+HANDS = ["Straight Flush", "Four of a Kind", "Full House", "Flush", 
+         "Straight", "Three of a Kind","Two Pairs", "One Pair", "No Pair"]
 
 class ListNode(object):
     def __init__(self, player, prev=None, next=None):
         self.player = player
         self.prev = prev
         self.next = next
-
 
 class Hand(object):
     def __init__(self, head, deck, nDeck, nActivePlayers):
@@ -27,7 +29,8 @@ class Hand(object):
         self.head = head
         self.nActivePlayers = nActivePlayers
         
-        self.commonCards = []
+        self.ranked_players = []
+        self.common_cards = []
     
     def get_blinds(self):
         while True:
@@ -66,6 +69,7 @@ class Hand(object):
                 
             player.cards = [self.deck.deal(), self.deck.deal()]
             self.show_player_cards(player)
+            
             node = node.next
         
     def pre_flop_bet(self):
@@ -89,7 +93,7 @@ class Hand(object):
         if len(self.deck) == 0:
             self.get_new_deck()
                 
-        self.commonCards.append(self.deck.deal())
+        self.common_cards.append(self.deck.deal())
         
     def bet(self):
         node = self.head.next
@@ -106,7 +110,7 @@ class Hand(object):
                       + str(player.moneyBetted) + ' betted in the pot and '
                       + str(player.money) + ' left in the pocket.', end=' ')
                 if player.isAI:
-                    bet, amount = AI.bet(player, self.highestBet, self.commonCards)
+                    bet, amount = AI.bet(player, self.highestBet, self.common_cards)
                 else:
                     bet, amount = self.bet_human(player)
                 
@@ -167,13 +171,38 @@ class Hand(object):
         return bet, amount
     
     def showdown(self):
-        pass
-    
-    def calculate(self):
-        pass
-    
+        node = self.head.next
+        while node:
+            player = node.player
+            if player.inHand:
+                self.show_player_cards(player)
+            node = node.next
 
+    def calculate(self):
+        node = self.head.next
+        while node:
+            player = node.player
+            dealer.find_highest_hand(player, self.common_cards)
+            dealer.calculate_score(player)
+            node = node.next
     
+    def rank_players(self):
+        players = []
+        node = self.head.next
+        while node:
+            players.append(node.player)
+            node = node.next
+            
+        self.ranked_players = sorted(players, 
+                                     key=lambda p: p.score, reverse=True)
+    
+    def distribute(self):
+        '''
+        distribute main pot and any side pot
+        '''
+        self.rank_players()
+        dealer.distribute(self.ranked_players)
+        
     def implement_bet(self, node, bet, amount):
         player = node.player
         if bet == 'fold':
@@ -214,7 +243,7 @@ class Hand(object):
 
     def show_common_cards(self):
         print('Cards on the table are: ' 
-              + ','.join(card.__repr__() for card in self.commonCards))
+              + ','.join(card.__repr__() for card in self.common_cards))
 
     def get_new_deck(self):
         self.deck.extend(Deck(self.nDeck))
@@ -293,6 +322,7 @@ class TexasHoldemGame(object):
         
         if hand.nActivePlayers == 1:
             hand.calculate()
+            hand.distribute()
             return
         
         hand.deal_flop()
@@ -300,6 +330,7 @@ class TexasHoldemGame(object):
         
         if hand.nActivePlayers == 1:
             hand.calculate()
+            hand.distribute()
             return
         
         hand.deal_turn()
@@ -307,6 +338,7 @@ class TexasHoldemGame(object):
         
         if hand.nActivePlayers == 1:
             hand.calculate()
+            hand.distribute()
             return
         
         hand.deal_river()
@@ -314,11 +346,14 @@ class TexasHoldemGame(object):
         
         if hand.nActivePlayers == 1:
             hand.calculate()
+            hand.distribute()
             return
         
-        hand.showdown()
+        if hand.nActivePlayers > 1:
+            hand.showdown()
         
         hand.calculate()
+        hand.distribute()
         
     def postHandUpdate(self, head):
         pass

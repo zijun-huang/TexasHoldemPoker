@@ -68,6 +68,10 @@ class Player(object):
         self.folded = False
         self.moneyBetted = 0
         
+        self.score = 0
+        self.highest_hand = []
+        self.highest_hand_type = None
+        
         self.cards = []
     
     def __repr__(self):
