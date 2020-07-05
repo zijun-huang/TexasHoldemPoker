@@ -6,13 +6,13 @@ Created on Thu Jul  2 13:09:57 2020
 """
 
 import random
-from pokerClasses import Card, Deck, Player
+from pokerClasses import Deck, Player
 import AIStrategy as AI
 import dealer
 
 BETTING_OPTIONS = ['fold', 'check', 'call', 'bet', 'raise']
-HANDS = ["Straight Flush", "Four of a Kind", "Full House", "Flush", 
-         "Straight", "Three of a Kind","Two Pairs", "One Pair", "No Pair"]
+# HANDS = ["Straight Flush", "Four of a Kind", "Full House", "Flush", 
+#          "Straight", "Three of a Kind","Two Pairs", "One Pair", "No Pair"]
 
 class ListNode(object):
     def __init__(self, player, prev=None, next=None):
@@ -21,13 +21,13 @@ class ListNode(object):
         self.next = next
 
 class Hand(object):
-    def __init__(self, head, deck, nDeck, nActivePlayers):
-        self.highestBet = 0
+    def __init__(self, head, deck, nDeck, n_playing):
+        self.max_bet = 0
         self.blinds = 0
         self.deck = deck
         self.nDeck = nDeck
         self.head = head
-        self.nActivePlayers = nActivePlayers
+        self.n_playing = n_playing
         
         self.ranked_players = []
         self.common_cards = []
@@ -48,12 +48,12 @@ class Hand(object):
             player = node.player
             curPlayers.append(player)
             if self.blinds >= player.money:
-                player.allIn = True
-                player.moneyBetted = player.money
+                player.all_in = True
+                player.money_in_pot = player.money
             else:
-                player.moneyBetted = self.blinds
-            player.money -= player.moneyBetted
-            self.highestBet = max(self.highestBet, player.moneyBetted)
+                player.money_in_pot = self.blinds
+            player.money -= player.money_in_pot
+            self.max_bet = max(self.max_bet, player.money_in_pot)
             node = node.next
             
         print('Players in this hand are: '+
@@ -101,21 +101,21 @@ class Hand(object):
             player = node.player
             if player.folded:
                 print(player.name + ' has already folded, with '
-                      + str(player.moneyBetted) + ' in the pot')
-            elif player.allIn:
+                      + str(player.money_in_pot) + ' in the pot')
+            elif player.all_in:
                 print(player.name + ' has been all in, with '
-                      + str(player.moneyBetted) + ' in the pot')
+                      + str(player.money_in_pot) + ' in the pot')
             else:
                 print(player.name + '\'s turn, who has '
-                      + str(player.moneyBetted) + ' betted in the pot and '
+                      + str(player.money_in_pot) + ' betted in the pot and '
                       + str(player.money) + ' left in the pocket.', end=' ')
-                if player.isAI:
-                    bet, amount = AI.bet(player, self.highestBet, self.common_cards)
+                if player.is_AI:
+                    bet, amount = AI.bet(player, self.max_bet, self.common_cards)
                 else:
                     bet, amount = self.bet_human(player)
                 
                 self.implement_bet(node, bet, amount)
-                print(player.name + ' now has '+ str(player.moneyBetted) 
+                print(player.name + ' now has '+ str(player.money_in_pot) 
                       + ' in the pot, and has ' + str(player.money)
                       + ' left in the pocket')
                                     
@@ -127,13 +127,13 @@ class Hand(object):
         '''
         while True:
             try:
-                if self.highestBet == player.moneyBetted:
+                if self.max_bet == player.money_in_pot:
                     if player.money > 0:
                         options = ['fold', 'check', 'bet']
                     else:
                         options = ['fold', 'check']
                 else:
-                    if player.money > self.highestBet - player.moneyBetted:
+                    if player.money > self.max_bet - player.money_in_pot:
                         options = ['fold', 'call', 'raise']
                     else:
                         options = ['fold', 'call']
@@ -152,12 +152,12 @@ class Hand(object):
             return bet, 0
         
         if bet == 'call':
-            return bet, min(player.money, self.highestBet - player.moneyBetted)
+            return bet, min(player.money, self.max_bet - player.money_in_pot)
         
         if bet == 'bet' or 'raise':
             while True:
                 try:
-                    minBet = self.highestBet-player.moneyBetted +1
+                    minBet = self.max_bet-player.money_in_pot +1
                     amount = int(input('Enter the amount you want to put down '+
                                  '(minimum is ' + str(minBet) + '): '))
                     if amount >= minBet:
@@ -174,7 +174,7 @@ class Hand(object):
         node = self.head.next
         while node:
             player = node.player
-            if player.inHand:
+            if player.in_hand:
                 self.show_player_cards(player)
             node = node.next
 
@@ -207,25 +207,25 @@ class Hand(object):
         player = node.player
         if bet == 'fold':
             player.folded = True
-            self.nActivePlayers -= 1
+            self.n_playing -= 1
             return
         if bet == 'check':
-            assert(player.moneyBetted == self.highestBet)
+            assert(player.money_in_pot == self.max_bet)
             return
         
         # call, bet, raise
         if amount >= player.money:
-            player.allIn = True
-            player.moneyBetted += player.money
+            player.all_in = True
+            player.money_in_pot += player.money
             player.money = 0
         else:
-            player.moneyBetted += amount
+            player.money_in_pot += amount
             player.money -= amount
         
         # check if the bet increases the bar, if so, update player linked list
-        if self.highestBet < player.moneyBetted:
+        if self.max_bet < player.money_in_pot:
         #if bet == 'bet' or bet == 'raise':
-            self.highestBet = player.moneyBetted
+            self.max_bet = player.money_in_pot
             
             tail = node
             while tail.next:
@@ -249,78 +249,76 @@ class Hand(object):
         self.deck.extend(Deck(self.nDeck))
         self.deck.shuffle()
     
-class TexasHoldemGame(object):
-    def __init__(self, nHumanPlayers, nAIs, startMoney, nDeck = 5):
-        self.nHumanPlayers = nHumanPlayers
-        self.nAIs = nAIs
-        self.startMoney = startMoney
+class Texas_Holdem_Game(object):
+    def __init__(self, n_human, n_AI, money0, nDeck = 5):
+        self.n_human = n_human
+        self.n_AI = n_AI
+        self.money0 = money0
         self.blinds = None
-        self.handIdx = 1
+        self.hand_idx = 1
         
         self.nDeck = nDeck
-        self.deck = Deck(nDeck)
-        #self.deck.shuffle()
+        self.deck = Deck(nDeck) # unshuffled yet
         
-        self.allPlayers = []
-        self.nActivePlayers = nHumanPlayers + nAIs
-        self.curHandPlayers = []
+        self.all_players = []
+        self.n_playing = n_human + n_AI
+
+        for i in range(n_human):
+            self.all_players.append(self.init_human(i))
+        for i in range(n_AI):
+            self.all_players.append(self.init_AI(i))
         
-        for i in range(nHumanPlayers):
-            self.allPlayers.append(self.initializeHuman(i))
-        for i in range(nAIs):
-            self.allPlayers.append(self.initializeAI(i))
-        
-    def seatPlayers(self, players):
+    def seat_players(self, players):
         # doubly linked list: head <-> player0 <-> player1 .. <-> player n-1
         
         head = ListNode(None)
         last = head
         for player in players:
             if player.money < 0:
-                player.inGame = player.inHand = False
+                player.in_game = player.in_hand = False
                 
-            if player.inGame:
+            if player.in_game:
                 p = ListNode(player, prev=last)
                 last.next = p
                 last = p
         
         return head
             
-    def initializeHuman(self, i):
+    def init_human(self, i):
         while True:
             try:
                 name = input('Enter the name of human player No.'
                              + str(i+1)+':\t')                
-                return Player(name, self.startMoney, False)
+                return Player(name, self.money0, False)
             
             except ValueError:
                 print('Invalid input. Please try again.')
     
-    def initializeAI(self, i):
-        return Player("AI"+str(i+1), self.startMoney, True)
+    def init_AI(self, i):
+        return Player("AI"+str(i+1), self.money0, True)
     
-    def startGame(self):
-        random.shuffle(self.allPlayers)
+    def start_game(self):
+        random.shuffle(self.all_players)
         self.deck.shuffle()
         
         print('Game has started.')
         
-        while self.nActivePlayers > 1:
-            print('Playing hand No.' + str(self.handIdx))
-            head = self.seatPlayers(self.allPlayers)
-            self.playOneHand(head)
-            self.postHandUpdate(head)
+        while self.n_playing > 1:
+            print('Playing hand No.' + str(self.hand_idx))
+            head = self.seat_players(self.all_players)
+            self.play_one_hand(head)
+            self.post_hand_update(head)
             break
             
-        self.endGame()
+        self.end_game()
     
-    def playOneHand(self, head):
-        hand = Hand(head, self.deck, self.nDeck, self.nActivePlayers)
+    def play_one_hand(self, head):
+        hand = Hand(head, self.deck, self.nDeck, self.n_playing)
         hand.get_blinds()
         hand.deal_holeCards()
         hand.pre_flop_bet()
         
-        if hand.nActivePlayers == 1:
+        if hand.n_playing == 1:
             hand.calculate()
             hand.distribute()
             return
@@ -328,7 +326,7 @@ class TexasHoldemGame(object):
         hand.deal_flop()
         hand.bet()
         
-        if hand.nActivePlayers == 1:
+        if hand.n_playing == 1:
             hand.calculate()
             hand.distribute()
             return
@@ -336,7 +334,7 @@ class TexasHoldemGame(object):
         hand.deal_turn()
         hand.bet()
         
-        if hand.nActivePlayers == 1:
+        if hand.n_playing == 1:
             hand.calculate()
             hand.distribute()
             return
@@ -344,21 +342,21 @@ class TexasHoldemGame(object):
         hand.deal_river()
         hand.bet()
         
-        if hand.nActivePlayers == 1:
+        if hand.n_playing == 1:
             hand.calculate()
             hand.distribute()
             return
         
-        if hand.nActivePlayers > 1:
+        if hand.n_playing > 1:
             hand.showdown()
         
         hand.calculate()
         hand.distribute()
         
-    def postHandUpdate(self, head):
+    def post_hand_update(self, head):
         pass
 
-    def endGame(self):
+    def end_game(self):
         print('End of Game, winner is...')
  
 
@@ -374,7 +372,7 @@ while True:
               
 while True:
     try:
-        nHumanPlayers = int(input('Enter the number of human players (>=1): '))
+        n_human = int(input('Enter the number of human players (>=1): '))
         break
     except ValueError:
         print('Invalid input. Please enter a positive integer')
@@ -382,13 +380,13 @@ while True:
 
 while True:
     try:
-        startMoney = int(input('Enter the starting amount of money every player has (>0): '))
+        money0 = int(input('Enter the starting amount of money every player has (>0): '))
         break
     except ValueError:
         print('Invalid input. Please enter a positive integer.')
 
-game = TexasHoldemGame(nHumanPlayers, nTotalPlayers-nHumanPlayers, startMoney)
-game.startGame()
+game = Texas_Holdem_Game(n_human, nTotalPlayers-n_human, money0)
+game.start_game()
 
 
 

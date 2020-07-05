@@ -37,7 +37,7 @@ class Deck(object):
     def __len__(self):
         return len(self.cards)
     
-    def displayAll(self):
+    def display_all(self):
         for card in self.cards:
             print(card, end=' ')
     
@@ -57,16 +57,16 @@ class Deck(object):
         self.cards.deal()
     
 class Player(object):
-    def __init__(self, name, money, isAI):
+    def __init__(self, name, money, is_AI):
         self.name = name
-        self.isAI = isAI
+        self.is_AI = is_AI
         self.money = money
-        self.inGame = True
+        self.in_game = True
         
-        self.inHand = True
-        self.allIn = False
+        self.in_hand = True
+        self.all_in = False
         self.folded = False
-        self.moneyBetted = 0
+        self.money_in_pot = 0
         
         self.score = 0
         self.highest_hand = []
@@ -77,20 +77,6 @@ class Player(object):
     def __repr__(self):
         return 'player {:s} with {:d} in the pocket'.format(self.name, 
                                                             self.money)
-    
-    def bet(self):
-        # return bet
-        if self.isAI:
-            # get decision from AI
-            pass
-        else:
-            if not self.inCurrentRound:
-                print(self.name+' is out for this round.')
-                return
-            bet = input("Choose your next move: \
-                        0 = fold, 1 = check, 2 = bet, 3 = call")
-
-        return bet
         
     #def observeFacialExpression(self)    
     #def says(self)

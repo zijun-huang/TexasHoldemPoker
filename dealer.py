@@ -262,12 +262,32 @@ def distribute(ranked_players):
     for player in ranked_players:
         score_player[player.score].append(player)
     
-    bet_player = defaultdict(list)
+    bets = sorted(list(set([p.money_in_pot for p in ranked_players])))
+    bet_player = {bet:[] for bet in bets}
+    
     for player in ranked_players:
-        bet_player[player.moneyBetted].append(player)
+        for b in bets:
+            if player.money_in_pot >= b:
+                bet_player[b].append(player)
+                
+    ranks = defaultdict(list) # {ranking: [players]}
     
-    bets = sorted(bet_player.keys())
+    for i, p in enumerate(ranked_players):
+        if i > 0 and p.score == ranked_players[i-1].score:
+            ranks[len(ranks)-1].append(p)
+        else:
+            ranks[len(ranks)].append(p)
     
-    # TO DO
+    # iterate rank 0 -> k, each time distribute money according to player.bets
+    # folded players do not get anything at this stage
+    for i in range(len(ranks)):
+        # TODO
+        pass
     
-    
+    # iterate through players. Each gets back any outstanding betted money
+    # this covers folded player who has higher bet than all in player, 
+    # and last un-called raised player
+    for p in ranked_players:
+        if p.money_in_pot > 0:
+            p.money += p.money_in_pot
+            p.money_in_pot = 0
