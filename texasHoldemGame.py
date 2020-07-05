@@ -28,6 +28,7 @@ class Hand(object):
         self.nDeck = nDeck
         self.head = head
         self.n_playing = n_playing
+        self.n_betting = n_playing
         
         self.ranked_players = []
         self.common_cards = []
@@ -50,8 +51,10 @@ class Hand(object):
             if self.blinds >= player.money:
                 player.all_in = True
                 player.money_in_pot = player.money
+                self.n_betting -= 1
             else:
                 player.money_in_pot = self.blinds
+                
             player.money -= player.money_in_pot
             self.max_bet = max(self.max_bet, player.money_in_pot)
             node = node.next
@@ -96,6 +99,9 @@ class Hand(object):
         self.common_cards.append(self.deck.deal())
         
     def bet(self):
+        if self.n_betting < 2:
+            return
+        
         node = self.head.next
         while node:
             player = node.player
@@ -115,9 +121,9 @@ class Hand(object):
                     bet, amount = self.bet_human(player)
                 
                 self.implement_bet(node, bet, amount)
-                print(player.name + ' now has '+ str(player.money_in_pot) 
+                print(player.name + ' has '+ str(player.money_in_pot) 
                       + ' in the pot, and has ' + str(player.money)
-                      + ' left in the pocket')
+                      + ' left.')
                                     
             node = node.next   
     
@@ -175,14 +181,14 @@ class Hand(object):
         while node:
             player = node.player
             if player.in_hand:
-                self.show_player_cards(player)
+                self.show_player_best_hand(player)
             node = node.next
 
     def calculate(self):
         node = self.head.next
         while node:
             player = node.player
-            dealer.find_highest_hand(player, self.common_cards)
+            dealer.find_best_hand(player, self.common_cards)
             dealer.calculate_score(player)
             node = node.next
     
@@ -208,6 +214,7 @@ class Hand(object):
         if bet == 'fold':
             player.folded = True
             self.n_playing -= 1
+            self.n_betting -= 1
             return
         if bet == 'check':
             assert(player.money_in_pot == self.max_bet)
@@ -218,6 +225,7 @@ class Hand(object):
             player.all_in = True
             player.money_in_pot += player.money
             player.money = 0
+            self.n_betting -= 1
         else:
             player.money_in_pot += amount
             player.money -= amount
@@ -240,6 +248,22 @@ class Hand(object):
     def show_player_cards(self, player):
         cards = ', '.join([card.__repr__() for card in player.cards])
         print(player.name + ' has ' + cards)
+    
+    def show_player_best_hand(self, player):
+        tp = player.best_hand_type
+        hd_string = ','.join([c.__repr__() for c in player.best_hand])
+        
+        print(player.name + '\'s best hand is a '  + tp 
+              + ': ' + hd_string)
+    
+    def show_all_players_money(self):
+        node = self.head.next
+        while node:
+            self.show_player_money(node.player)
+            node = node.next
+    
+    def show_player_money(self, player):
+        print(player.name + ' has ' + str(player.money) + '.')
 
     def show_common_cards(self):
         print('Cards on the table are: ' 
@@ -248,6 +272,7 @@ class Hand(object):
     def get_new_deck(self):
         self.deck.extend(Deck(self.nDeck))
         self.deck.shuffle()
+    
     
 class Texas_Holdem_Game(object):
     def __init__(self, n_human, n_AI, money0, nDeck = 5):
@@ -270,7 +295,6 @@ class Texas_Holdem_Game(object):
         
     def seat_players(self, players):
         # doubly linked list: head <-> player0 <-> player1 .. <-> player n-1
-        
         head = ListNode(None)
         last = head
         for player in players:
@@ -308,56 +332,61 @@ class Texas_Holdem_Game(object):
             head = self.seat_players(self.all_players)
             self.play_one_hand(head)
             self.post_hand_update(head)
-            break
+            print('Hand No. ' + str(self.hand_idx) + ' has ended.')
+            print(str(self.n_playing) + ' player(s) remaining.')
             
         self.end_game()
     
     def play_one_hand(self, head):
         hand = Hand(head, self.deck, self.nDeck, self.n_playing)
+        
         hand.get_blinds()
+        
         hand.deal_holeCards()
         hand.pre_flop_bet()
         
-        if hand.n_playing == 1:
-            hand.calculate()
-            hand.distribute()
-            return
-        
+        print('hand.n_betting is :' + str(hand.n_betting))
         hand.deal_flop()
         hand.bet()
         
-        if hand.n_playing == 1:
-            hand.calculate()
-            hand.distribute()
-            return
-        
+        print('hand.n_betting is :' + str(hand.n_betting))
         hand.deal_turn()
         hand.bet()
         
-        if hand.n_playing == 1:
-            hand.calculate()
-            hand.distribute()
-            return
-        
+        print('hand.n_betting is :' + str(hand.n_betting))
         hand.deal_river()
         hand.bet()
         
-        if hand.n_playing == 1:
-            hand.calculate()
-            hand.distribute()
-            return
+        hand.calculate()
         
         if hand.n_playing > 1:
             hand.showdown()
-        
-        hand.calculate()
+
         hand.distribute()
+        hand.show_all_players_money()
         
     def post_hand_update(self, head):
-        pass
+        self.n_playing = 0
+        
+        node = head.next
+        while node:
+            p = node.player
+            if p.money <= 0:
+                p.in_game = p.in_hand = False
+            else:
+                self.n_playing += 1
+                p.in_game = p.in_hand = True
+                
+            p.all_in = p.folded = False
+            p.money_in_pot = p.score = 0
+            p.best_hand = []
+            p.best_hand_type = None
+            p.cards = []
+            
+            node = node.next
 
     def end_game(self):
-        print('End of Game, winner is...')
+        print('End of Game.')
  
 
 while True:

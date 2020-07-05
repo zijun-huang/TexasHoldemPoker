@@ -62,15 +62,15 @@ class Player(object):
         self.is_AI = is_AI
         self.money = money
         self.in_game = True
-        
         self.in_hand = True
+        
         self.all_in = False
         self.folded = False
         self.money_in_pot = 0
         
         self.score = 0
-        self.highest_hand = []
-        self.highest_hand_type = None
+        self.best_hand = []
+        self.best_hand_type = None
         
         self.cards = []
     

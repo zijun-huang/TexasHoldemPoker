@@ -163,10 +163,10 @@ def search_one_pair(cards):
     
     return hand[:5]
     
-def find_highest_hand(player, common_cards):
+def find_best_hand(player, common_cards):
     '''
     find highest hand in cards
-    update player.highest_hand, player.score
+    update player.best_hand, player.score
     '''
     cards = player.cards + common_cards
     cards = sorted(cards, key=lambda card: card.rank, reverse = True)
@@ -178,60 +178,60 @@ def find_highest_hand(player, common_cards):
         # find highest 5 cards out of all cards
         ans = search_straight_flush(cards)
         if ans:
-            player.highest_hand = ans
-            player.highest_hand_type = HANDS[0]
+            player.best_hand = ans
+            player.best_hand_type = HANDS[0]
             return
         
         ans = search_four_of_a_kind(cards)
         if ans:
-            player.highest_hand = ans
-            player.highest_hand_type = HANDS[1]
+            player.best_hand = ans
+            player.best_hand_type = HANDS[1]
             return
         
         ans = search_full_house(cards)
         if ans:
-            player.highest_hand = ans
-            player.highest_hand_type = HANDS[2]
+            player.best_hand = ans
+            player.best_hand_type = HANDS[2]
             return
         
         ans = search_flush(cards)
         if ans:
-            player.highest_hand = ans
-            player.highest_hand_type = HANDS[3]
+            player.best_hand = ans
+            player.best_hand_type = HANDS[3]
             return
         
         ans = search_straight(cards)
         if ans:
-            player.highest_hand = ans
-            player.highest_hand_type = HANDS[4]
+            player.best_hand = ans
+            player.best_hand_type = HANDS[4]
             return
         
         ans = search_three_of_a_kind(cards)
         if ans:
-            player.highest_hand = ans
-            player.highest_hand_type = HANDS[5]
+            player.best_hand = ans
+            player.best_hand_type = HANDS[5]
             return
         
         ans = search_two_pairs(cards)
         if ans:
-            player.highest_hand = ans
-            player.highest_hand_type = HANDS[6]
+            player.best_hand = ans
+            player.best_hand_type = HANDS[6]
             return
         
         ans = search_one_pair(cards)
         if ans:
-            player.highest_hand = ans
-            player.highest_hand_type = HANDS[7]
+            player.best_hand = ans
+            player.best_hand_type = HANDS[7]
             return
         
-        player.highest_hand = cards[:5]
-        player.highest_hand_type = HANDS[8]
+        player.best_hand = cards[:5]
+        player.best_hand_type = HANDS[8]
         
         return
 
 def calculate_score(player):
     '''
-    update player.score based on highest_hand_type and highest_hand
+    update player.score based on best_hand_type and best_hand
     use base 13 numbering
     6 (type), 5 , 4, 3, 2, 1
     '''
@@ -239,13 +239,13 @@ def calculate_score(player):
     
     i = 0
     power = 6
-    while HANDS[i] != player.highest_hand_type:
+    while HANDS[i] != player.best_hand_type:
         i += 1
     
     score += (len(HANDS)-i)*(13**power)
     power -= 1   
 
-    cards = player.highest_hand
+    cards = player.best_hand
     for i in range(5):
         score += (cards[i].rank)*(13**power)
         power -= 1
@@ -263,31 +263,68 @@ def distribute(ranked_players):
         score_player[player.score].append(player)
     
     bets = sorted(list(set([p.money_in_pot for p in ranked_players])))
+    bets = [0] + bets
+    
     bet_player = {bet:[] for bet in bets}
     
     for player in ranked_players:
         for b in bets:
             if player.money_in_pot >= b:
                 bet_player[b].append(player)
-                
-    ranks = defaultdict(list) # {ranking: [players]}
     
-    for i, p in enumerate(ranked_players):
-        if i > 0 and p.score == ranked_players[i-1].score:
-            ranks[len(ranks)-1].append(p)
-        else:
-            ranks[len(ranks)].append(p)
-    
-    # iterate rank 0 -> k, each time distribute money according to player.bets
-    # folded players do not get anything at this stage
-    for i in range(len(ranks)):
-        # TODO
-        pass
-    
+    for b in bet_player:
+        bet_player[b].sort(key=lambda p:p.score, reverse=True)
+
+    # iterate each bet level, find the unfolded player(s) w. the highest score
+    for i in range(1, len(bets)):
+        b = bets[i]
+        winners = []
+        for p in bet_player[b]:
+            if p.folded:
+                continue
+            if not winners:
+                winners.append(p)
+            elif p.score == winners[0].score:
+                winners.append(p)
+            else:
+                break
+        
+        if not winners:
+            continue
+        
+        pot = 0
+        incre = bets[i] - bets[i-1]
+        for p in bet_player[b]:
+            pot += min(p.money_in_pot, incre)
+            p.money_in_pot -= min(p.money_in_pot, incre)
+        
+        mod = pot % len(winners)
+        for i in range(mod):
+            winners[i].money += 1
+        
+        pot -= mod
+        for p in winners:
+            p.money += pot // len(winners)
+        
     # iterate through players. Each gets back any outstanding betted money
-    # this covers folded player who has higher bet than all in player, 
+    # this covers folded player who has higher bet than all-in player, 
     # and last un-called raised player
     for p in ranked_players:
         if p.money_in_pot > 0:
             p.money += p.money_in_pot
             p.money_in_pot = 0
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
