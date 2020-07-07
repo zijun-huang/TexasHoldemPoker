@@ -104,10 +104,7 @@ class Player(object):
     def __repr__(self):
         return 'player {:s} with {:d} in the pocket'.format(self.name, 
                                                             self.money)
-    
-    #def observeFacialExpression(self)    
-    #def says(self)
-    #def action(self)
+
     
     
 class ListNode(object):

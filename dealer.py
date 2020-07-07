@@ -39,13 +39,13 @@ def search_four_of_a_kind(cards):
     '''
     cards: sorted cards by rank high to low
     '''
-    for i in range(len(cards)-4):
+    for i in range(len(cards)-3):
         rank = cards[i].rank
         j = 1
-        while j < 5 and cards[i+j].rank == rank:
+        while j < 4 and cards[i+j].rank == rank:
             j += 1
-        if j == 5:
-            return cards[i:i+5]
+        if j == 4:
+            return cards[i:i+5] if i < len(cards)-4 else cards[i:i+4]+[cards[0]]
         
     return None
 

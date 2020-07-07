@@ -6,6 +6,8 @@ Created on Fri Jul  3 16:51:18 2020
 """
 
 '''
+default probabilities:
+    https://en.wikipedia.org/wiki/Poker_probability
 preflop chart ref:
     https://www.888poker.com/magazine/strategy/20-poker-charts
 '''
@@ -22,6 +24,11 @@ for i in range(2, 15):
         else:
             CHART[i][j] = tmp + 's'
             CHART[j][i] = tmp + 'o'
+
+PROBs = {"Straight Flush":0.000311, "Four of a Kind":0.00168, 
+         "Full House":0.026, "Flush":0.0303, "Straight":0.0462,
+         "Three of a Kind":0.0483,"Two Pairs":0.235, "One Pair":0.438, 
+         "No Pair":0.174}
 
 UTG_list = CHART[2][2:] + CHART[3][2:7] + CHART[4][2:7] + \
     CHART[5][2:3] + CHART[5][5:7] + CHART[6][2:3] + CHART[6][6:8] + \
@@ -70,22 +77,23 @@ def pre_flop_bet(player, max_bet, big_blind):
         return 'call', 0
     
 def bet(player, max_bet, common_cards, big_blind):
+    print(player.name + ' is thinking...')
+    
     if not common_cards:
         return pre_flop_bet(player, max_bet, big_blind)
     
     # simulation
     win_chance = simulate(player, common_cards)
-    print('simulated winning probability is {:f}'.format(win_chance))
-    if win_chance < 50:
+    print('simulated winning probability is {:.2%}'.format(win_chance))
+    if win_chance < .40:
         return "fold", 0
-    elif win_chance < 90:
+    elif win_chance < .80:
         if player.money_in_pot < max_bet:
             return 'call', max_bet-player.money_in_pot
         else:
             return 'check', 0
     else:
         return 'raise', max_bet+big_blind-player.money_in_pot
-
 
 def simulate(player, common_cards, n_sims=50000):
     deck = Deck()
@@ -94,7 +102,7 @@ def simulate(player, common_cards, n_sims=50000):
     for card in cards:
         deck.remove_card(card)
 
-    
+    type_count = {tp:0 for tp in dealer.HANDS}
     sims_wins = 0
     for _ in range(n_sims):
         deck.shuffle()
@@ -104,18 +112,43 @@ def simulate(player, common_cards, n_sims=50000):
             simulated_cards.append(deck.deal())
             
         my_cards = player.cards + common_cards + simulated_cards[2:]
-        #my_hand_type, my_hand = dealer.find_best_hand(my_cards)
-        my_score = dealer.calculate_score(dealer.find_best_hand(my_cards))
+        my_hand_type, my_hand = dealer.find_best_hand(my_cards)
+        my_score = dealer.calculate_score(my_hand_type, my_hand)
+        type_count[my_hand_type] += 1
         
         op_cards = common_cards + simulated_cards
-        #op_hand_type, op_hand = dealer.find_best_hand(op_cards)
-        op_score = dealer.calculate_score(dealer.find_best_hand(op_cards))
+        op_hand_type, op_hand = dealer.find_best_hand(op_cards)
+        op_score = dealer.calculate_score(op_hand_type, op_hand)
+        type_count[op_hand_type] += 1
         
         if my_score >= op_score:
             sims_wins += 1
             
         for card in simulated_cards:
             deck.add_card(card) 
-            
-    return sims_wins*100/n_sims
+    
+    for tp in type_count:
+        msg = tp + ': {:.4%}'
+        print(msg.format(type_count[tp]/(2*n_sims)))
         
+    return sims_wins/n_sims
+
+    
+def eval_hand_strength(player, common_cards):
+    #TODO
+    pass
+    
+def detect_op_bluff(player, common_cards, prev_bets):
+    #TODO
+    pass
+
+def can_bluff(player, common_cards):
+    #TODO
+    return False
+    
+
+
+
+
+
+ 
