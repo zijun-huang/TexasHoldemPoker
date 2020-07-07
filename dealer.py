@@ -22,6 +22,8 @@ def search_straight_flush(cards):
             j += 1
         if j == 5:
             return cards[i:i+5]
+    # TODO
+    # check low straight flush A-2-3-4-5
     
     return None
 
@@ -92,7 +94,9 @@ def search_straight(cards):
             j += 1
         if j == 5:
             return cards[i:i+5]
-        
+    
+    #TODO
+    # check low straight: A-2-3-4-5
     return None
 
 def search_three_of_a_kind(cards):
@@ -162,14 +166,23 @@ def search_one_pair(cards):
             hand.append(card)
     
     return hand[:5]
-    
-def find_best_hand(player, common_cards):
+
+def update_best_hand(player, common_cards):
     '''
     find highest hand in cards
     update player.best_hand, player.score
     '''
     cards = player.cards + common_cards
     cards = sorted(cards, key=lambda card: card.rank, reverse = True)
+    
+    player.best_hand_type, player.best_hand = find_best_hand(cards)
+
+
+def find_best_hand(cards):
+    '''
+    cards: sorted cards
+    return best_hand, best_hand_type
+    '''
     
     if len(cards) == 2:
         # TO DO
@@ -178,79 +191,61 @@ def find_best_hand(player, common_cards):
         # find highest 5 cards out of all cards
         ans = search_straight_flush(cards)
         if ans:
-            player.best_hand = ans
-            player.best_hand_type = HANDS[0]
-            return
+            return HANDS[0], ans
         
         ans = search_four_of_a_kind(cards)
         if ans:
-            player.best_hand = ans
-            player.best_hand_type = HANDS[1]
-            return
+            return HANDS[1], ans
         
         ans = search_full_house(cards)
         if ans:
-            player.best_hand = ans
-            player.best_hand_type = HANDS[2]
-            return
+            return HANDS[2], ans
         
         ans = search_flush(cards)
         if ans:
-            player.best_hand = ans
-            player.best_hand_type = HANDS[3]
-            return
+            return HANDS[3], ans
         
         ans = search_straight(cards)
         if ans:
-            player.best_hand = ans
-            player.best_hand_type = HANDS[4]
-            return
+            return HANDS[4], ans
         
         ans = search_three_of_a_kind(cards)
         if ans:
-            player.best_hand = ans
-            player.best_hand_type = HANDS[5]
-            return
+            return HANDS[5], ans
         
         ans = search_two_pairs(cards)
         if ans:
-            player.best_hand = ans
-            player.best_hand_type = HANDS[6]
-            return
+            return HANDS[6], ans
         
         ans = search_one_pair(cards)
         if ans:
-            player.best_hand = ans
-            player.best_hand_type = HANDS[7]
-            return
+            return HANDS[7], ans
         
-        player.best_hand = cards[:5]
-        player.best_hand_type = HANDS[8]
-        
-        return
+        return HANDS[8], cards[:5]
 
-def calculate_score(player):
+def calculate_score(best_hand_type, best_hand):
     '''
     update player.score based on best_hand_type and best_hand
     use base 13 numbering
     6 (type), 5 , 4, 3, 2, 1
     '''
+    
     score = 0
     
     i = 0
     power = 6
-    while HANDS[i] != player.best_hand_type:
+    while HANDS[i] != best_hand_type:
         i += 1
     
     score += (len(HANDS)-i)*(13**power)
     power -= 1   
 
-    cards = player.best_hand
+    cards = best_hand
     for i in range(5):
         score += (cards[i].rank)*(13**power)
         power -= 1
     
-    player.score = score
+    return score
 
 def distribute(ranked_players):
     '''
