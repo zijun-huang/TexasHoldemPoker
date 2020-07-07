@@ -192,7 +192,6 @@ def update_best_hand(player, common_cards):
     
     player.best_hand_type, player.best_hand = find_best_hand(cards)
 
-
 def find_best_hand(cards):
     '''
     cards: sorted cards
@@ -261,18 +260,10 @@ def calculate_score(best_hand_type, best_hand):
     #power -= 1
     letter_score = str(len(HANDS)-i)
 
-    cards = best_hand
     for i in range(5):
         #score += (cards[i].rank)*(13**power)
         #power -= 1
-        letter_score = digits[cards[i].rank] + letter_score
-    
-    # handles low straight flush and low straight
-    if sorted([card.rank for card in cards]) == [2, 3, 4, 5, 14]:
-        if all(card.suit == cards[0].suit for card in cards):
-            letter_score = '912345'
-        else:
-            letter_score = '512345'
+        letter_score += digits[best_hand[i].rank]
     
     return letter_score
 
