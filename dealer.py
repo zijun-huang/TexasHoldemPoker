@@ -6,25 +6,33 @@ Created on Sat Jul  4 10:03:57 2020
 """
 
 from collections import Counter, defaultdict
+from pokerClasses import Card
 
 HANDS = ["Straight Flush", "Four of a Kind", "Full House", "Flush", 
          "Straight", "Three of a Kind","Two Pairs", "One Pair", "No Pair"]
-
 
 def search_straight_flush(cards):
     '''
     cards: sorted cards by rank high to low
     '''
-    for i in range(len(cards)-4):
-        rank, suit = cards[i].rank, cards[i].suit
-        j = 1
-        while j < 5 and cards[i+j].rank == rank-j and cards[i+j].suit == suit:
-            j += 1
-        if j == 5:
-            return cards[i:i+5]
-    # TODO
-    # check low straight flush A-2-3-4-5
-    
+    # cover low straight flush possibility
+    _cards = [card for card in cards]
+    for card in cards:
+        if card.rank < 14:
+            break
+        _cards.append(Card(1, card.suit))
+
+    for i in range(len(_cards)-4):
+        suit = _cards[i].suit
+        ans = [_cards[i]]
+        for j in range(i+1,len(_cards)):
+            if _cards[j].rank < ans[-1].rank - 1:
+                break
+            if _cards[j].rank == ans[-1].rank - 1 and _cards[j].suit == suit:
+                ans.append(_cards[j])
+        if len(ans) >= 5:
+            return ans[:5]
+  
     return None
 
 def search_four_of_a_kind(cards):
@@ -87,16 +95,23 @@ def search_flush(cards):
     return None
 
 def search_straight(cards):
-    for i in range(len(cards)-4):
-        rank = cards[i].rank
-        j = 1
-        while j < 5 and cards[i+j] == rank-j:
-            j += 1
-        if j == 5:
-            return cards[i:i+5]
+    # cover low straight flush possibility
+    _cards = [card for card in cards]
+    for card in cards:
+        if card.rank < 14:
+            break
+        _cards.append(Card(1, card.suit))
     
-    #TODO
-    # check low straight: A-2-3-4-5
+    for i in range(len(_cards)-4):
+        ans = [_cards[i]]
+        for j in range(i+1,len(_cards)):
+            if _cards[j].rank < ans[-1].rank - 1:
+                break
+            if _cards[j].rank == ans[-1].rank - 1:
+                ans.append(_cards[j])
+        if len(ans) >= 5:
+            return ans[:5]
+
     return None
 
 def search_three_of_a_kind(cards):
@@ -173,7 +188,7 @@ def update_best_hand(player, common_cards):
     update player.best_hand, player.score
     '''
     cards = player.cards + common_cards
-    cards = sorted(cards, key=lambda card: card.rank, reverse = True)
+    #cards = sorted(cards, key=lambda card: card.rank, reverse = True)
     
     player.best_hand_type, player.best_hand = find_best_hand(cards)
 
@@ -183,6 +198,8 @@ def find_best_hand(cards):
     cards: sorted cards
     return best_hand, best_hand_type
     '''
+    
+    cards.sort(key=lambda c:c.rank, reverse = True)
     
     if len(cards) == 2:
         # TO DO
@@ -230,22 +247,34 @@ def calculate_score(best_hand_type, best_hand):
     6 (type), 5 , 4, 3, 2, 1
     '''
     
-    score = 0
+    digits = '0123456789TJQKA'
+    
+    #score = 0
+    letter_score = ''
     
     i = 0
-    power = 6
+    #power = 6
     while HANDS[i] != best_hand_type:
         i += 1
     
-    score += (len(HANDS)-i)*(13**power)
-    power -= 1   
+    #score += (len(HANDS)-i)*(13**power)
+    #power -= 1
+    letter_score = str(len(HANDS)-i)
 
     cards = best_hand
     for i in range(5):
-        score += (cards[i].rank)*(13**power)
-        power -= 1
+        #score += (cards[i].rank)*(13**power)
+        #power -= 1
+        letter_score = digits[cards[i].rank] + letter_score
     
-    return score
+    # handles low straight flush and low straight
+    if sorted([card.rank for card in cards]) == [2, 3, 4, 5, 14]:
+        if all(card.suit == cards[0].suit for card in cards):
+            letter_score = '912345'
+        else:
+            letter_score = '512345'
+    
+    return letter_score
 
 def distribute(ranked_players):
     '''

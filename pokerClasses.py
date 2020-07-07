@@ -11,7 +11,7 @@ SUITS = {'spades':chr(9828),'hearts':chr(9829),
          'diamonds': chr(9830),'clubs':chr(9831)}
 
 RANKS = [i for i in range(2, 15)]
-RANK_NAME = ['NA', 'NA'] + [str(i) for i in range(2, 11)] + ['J', 'Q', 'K', 'A']
+RANK_NAME = ['Invalid', 'A'] + [str(i) for i in range(2, 11)] + ['J', 'Q', 'K', 'A']
 
 #BETTING_OPTIONS = ['fold', 'check', 'bet', 'call']
 

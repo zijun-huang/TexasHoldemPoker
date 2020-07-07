@@ -9,7 +9,7 @@ import human, dealer
 from pokerClasses import Deck, Player, PlayerLinkedList
 import AIStrategy as AI
 
-BETTING_OPTIONS = ['fold', 'check', 'call', 'bet', 'raise']
+# BETTING_OPTIONS = ['fold', 'check', 'call', 'bet', 'raise']
 # HANDS = ["Straight Flush", "Four of a Kind", "Full House", "Flush", 
 #          "Straight", "Three of a Kind","Two Pairs", "One Pair", "No Pair"]
 
@@ -213,7 +213,8 @@ class Hand(object):
             players.append(node.player)
             node = node.next
             
-        self.ranked_players = sorted(players, key=lambda p: p.score, reverse=True)
+        self.ranked_players = sorted(players, key=lambda p: p.score, 
+                                     reverse=True)
     
     def distribute(self):
         '''

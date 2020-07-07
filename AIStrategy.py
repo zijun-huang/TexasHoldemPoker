@@ -8,15 +8,10 @@ Created on Fri Jul  3 16:51:18 2020
 '''
 preflop chart ref:
     https://www.888poker.com/magazine/strategy/20-poker-charts
-    
 '''
 
-#import random
 import dealer
-from pokerClasses import Card, Deck, Player
-
-HANDS = ["Straight Flush", "Four of a Kind", "Full House", "Flush", 
-         "Straight", "Three of a Kind","Two Pairs", "One Pair", "No Pair"]
+from pokerClasses import Deck
 
 CHART = [["" for _ in range(15)] for _ in range(15)]
 for i in range(2, 15):
@@ -90,7 +85,7 @@ def bet(player, max_bet, common_cards, big_blind):
             return 'check', 0
     else:
         return 'raise', max_bet+big_blind-player.money_in_pot
-    
+
 
 def simulate(player, common_cards, n_sims=50000):
     deck = Deck()
@@ -99,6 +94,7 @@ def simulate(player, common_cards, n_sims=50000):
     for card in cards:
         deck.remove_card(card)
 
+    
     sims_wins = 0
     for _ in range(n_sims):
         deck.shuffle()
@@ -108,13 +104,12 @@ def simulate(player, common_cards, n_sims=50000):
             simulated_cards.append(deck.deal())
             
         my_cards = player.cards + common_cards + simulated_cards[2:]
-        
-        my_hand_type, my_hand = dealer.find_best_hand(my_cards)
-        my_score = dealer.calculate_score(my_hand_type, my_hand)
+        #my_hand_type, my_hand = dealer.find_best_hand(my_cards)
+        my_score = dealer.calculate_score(dealer.find_best_hand(my_cards))
         
         op_cards = common_cards + simulated_cards
-        op_hand_type, op_hand = dealer.find_best_hand(op_cards)
-        op_score = dealer.calculate_score(op_hand_type, op_hand)
+        #op_hand_type, op_hand = dealer.find_best_hand(op_cards)
+        op_score = dealer.calculate_score(dealer.find_best_hand(op_cards))
         
         if my_score >= op_score:
             sims_wins += 1
